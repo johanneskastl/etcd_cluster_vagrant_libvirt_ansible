@@ -1,0 +1,41 @@
+---
+- name: 'Install etcd on etcd nodes'
+  hosts: 'etcd_nodes'
+  gather_facts: 'yes'
+  become: 'true'
+
+  pre_tasks:
+
+    - name: 'Create empty variable initial_cluster_string'
+      ansible.builtin.set_fact:
+        initial_cluster_string: ''
+      run_once: 'true'
+
+    - name: 'Create string with hostname'
+      ansible.builtin.set_fact:
+        initial_cluster_string: "{{ initial_cluster_string  + hostvars[item]['inventory_hostname'] + '=http://' + hostvars[item]['ansible_default_ipv4']['address'] + ':2380,' }}"
+      run_once: 'true'
+      with_items: "{{ groups['etcd_nodes'] }}"
+
+    - name: 'Remove trailing comma'
+      ansible.builtin.set_fact:
+        initial_cluster_string: "{{ initial_cluster_string | regex_replace(',$', '') }}"
+      run_once: 'true'
+
+    - name: debug
+      debug:
+        var: initial_cluster_string
+      run_once: 'true'
+
+  roles:
+    - role: 'install_and_configure_etcd'
+      vars:
+        enable_api_v2: 'true'
+        etcd_name: "{{ inventory_hostname }}"
+        etcd_advertise_client_urls: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2379"
+        etcd_listen_client_urls: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2379,http://localhost:2379"
+        etcd_listen_peer_urls: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2380"
+        etcd_initial_advertise_peer_urls: "http://{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2380"
+        etcd_initial_cluster: "{{ initial_cluster_string }}"
+        etcd_initial_cluster_state: 'new'
+        etcd_initial_cluster_token: 'with_love_from_vagrant_ansible_libvirt'
