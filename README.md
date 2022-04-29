@@ -42,3 +42,24 @@ In case you do not want Ansible to install etcd (because you want to install it 
 
         end # node.vm.provision
 ```
+
+## Creating additional etcd servers
+
+You can modify the Vagrantfile to create additional etcd servers by tweaking two lines.
+
+1. Setting the number of agents (in this example to `5`):
+
+```
+  ###################################################################################
+  # define number of etcd nodes
+  E = 5
+```
+
+Keep in mind that [etcd needs quorum](https://etcd.io/docs/v3.5/faq/#why-an-odd-number-of-cluster-members), so you should only use odd numbers (1,3,5,7, ...).
+
+2. Adding the additional agent nodes to the `ansible_groups` line:
+```
+          ansible.groups = {
+            "etcd_nodes"  => [ "etcd1", "etcd2", "etcd3", "etcd4", "etcd5" ],
+          }
+```
